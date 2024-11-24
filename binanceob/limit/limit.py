@@ -8,8 +8,11 @@ class Limit(object):
 
     def empty(self): return self.quantity == 0.0
 
+    def as_dict(self):
+        return {'price': self.price, 'quantity': self.quantity}
+
     def __repr__(self):
-        return f'{self.limit_type} Limit @ {self.price:.2f} of {self.quantity:.5f}'
+        return f'{self.limit_type} Limit @ {self.price:.2f} of {self.quantity:008.4f}'
 
 class AskLimit(Limit):
     def __init__(self, price : float, quantity : int):

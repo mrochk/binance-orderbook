@@ -1,15 +1,19 @@
 from binance import Client, ThreadedWebsocketManager
-from time import sleep
+from time import sleep, time
 from ..orderbook import Orderbook
 from ..event import Event
 from ..util import *
+import json
 
 class BinanceOrderbook(object):
     def __init__(self, symbol='BTCUSDT', display_depth=10):
         self.symbol = symbol if symbol is not None else BASE_SYMBOL
         self.display_depth = display_depth
         self.buffer = list()
+        self.orderbook = None
         self.twm = ThreadedWebsocketManager() 
+
+        self.data = {'symbol': self.symbol, 'ob': []}
 
         self.twm.start()
 
@@ -30,36 +34,46 @@ class BinanceOrderbook(object):
             n_asks, n_bids = len(msg['a']), len(msg['b'])
             print(f'event received ({n_bids} bids, {n_asks} asks)')
 
-        socket_name = self.__open_depth_stream(callback, 100)
+        socket_name = self.__open_depth_stream(callback)
         snapshot = self.__get_snapshot()
         last_update_id = snapshot['lastUpdateId']
-        orderbook = Orderbook(snapshot)
+        self.orderbook = Orderbook(snapshot)
         self.__wait_first_event(last_update_id)
         self.__prune_buffer(last_update_id)
 
         try:
-            while True: self.__loop(orderbook)
+            while True: self.__loop()
         except KeyboardInterrupt:
             print(f'\nshutting down...')
             self.__stop_stream(socket_name)
             self.__stop_twm()
             sleep(0.1)
             print('orderbook stopped successfully')
+
+            with open('out.json', 'w') as f: f.write(self.to_json())
+            print('wrote data successfully')
+
             return
+
+    def to_json(self):
+        return json.dumps(self.data)
 
     def __wait_first_event(self, luid):
         while True:
             for event in self.buffer:
                 if self.__is_first_event(luid, event): return
-            sleep(0.5)
+            sleep(2)
 
-    def __loop(self, orderbook):
+    def __loop(self):
         if not self.buffer: return
         msg = self.buffer.pop(0)
         event = Event(msg)
-        orderbook.update(event)
+        self.orderbook.update(event)
         print()
-        orderbook.display(self.display_depth) 
+        self.orderbook.display(self.display_depth) 
+
+        self.data['ob'].append(self.orderbook.as_dict())
+        #print(self.to_json())
 
     def __get_snapshot(self, limit=1000):
         return Client().get_order_book(symbol=self.symbol, limit=limit)

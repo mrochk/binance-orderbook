@@ -1,3 +1,4 @@
+from time import time
 from ..event import Event
 from ..limit import BidLimit, AskLimit
 from ..util import *
@@ -58,6 +59,13 @@ class Orderbook(object):
 
         self.midprice = self.__get_midprice()
         self.spread   = self.__get_spread()
+
+    def as_dict(self, depth=10):
+        return {
+            'timestamp': time(),
+            'bids': [l.as_dict() for l in self.bids_limit[:depth]],
+            'asks': [l.as_dict() for l in self.asks_limit[:depth]],
+        }
 
     def display(self, nlimits=10):
         self.__sort()
