@@ -2,7 +2,7 @@
 
 Python project allowing one to run a Binance order book locally.
 
-<img src="./ss.png" width="300" title="screenshot">
+<img src="./ss.png" width="250" title="screenshot">
 
 This project simply follows the Binance API recommendations that you can find [here](https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#how-to-manage-a-local-order-book-correctly).
 
@@ -14,7 +14,7 @@ The primary goal of this project is to collect (relatively high frequency) order
 
 Usage for simply displaying the order book in your terminal (as in the screenshot):
 ```
-python3 main.py symbol>
+python3 main.py <SYMBOL>
 ```
 
 Example:
