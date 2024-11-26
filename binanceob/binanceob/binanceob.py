@@ -2,6 +2,7 @@ from binance import Client, ThreadedWebsocketManager
 from binance.exceptions import BinanceAPIException
 from time import sleep
 import json
+import os
 
 from ..orderbook import Orderbook
 from ..event import Event
@@ -9,14 +10,16 @@ from ..util import *
 
 class BinanceOrderbook(object):
     symbol        : str
+    interval      : str
     display_depth : int
     buffer        : list[dict]
     orderbook     : Orderbook
     twm           : ThreadedWebsocketManager
     data          : dict
 
-    def __init__(self, symbol='BTCUSDT', display_depth=10):
+    def __init__(self, symbol='BTCUSDT', display_depth=10, interval='1s'):
         self.symbol = symbol if symbol is not None else BASE_SYMBOL
+        self.interval = interval
         self.display_depth = display_depth
         self.buffer = list()
         self.orderbook = None
@@ -34,7 +37,7 @@ class BinanceOrderbook(object):
         self.twm.start()
 
         # start websocket stream
-        try: socket_name = self.__open_depth_stream(callback)
+        try: socket_name = self.__open_depth_stream(callback, self.interval)
         except Exception as e: 
             print_error(f'when trying to start depth stream: {e}')
             self.__exit_error()
@@ -57,8 +60,13 @@ class BinanceOrderbook(object):
         print(f'\nshutting down...')
         self.__stop_stream(socket_name); self.__stop_twm()
         print('orderbook stopped successfully')
-        with open('out.json', 'w') as f: f.write(self.to_json())
-        print('wrote data successfully')
+
+        try: os.mkdir('data') 
+        except: pass
+
+        out = f'data/{self.symbol}.json'
+        with open(out, 'w') as f: f.write(self.to_json())
+        print(f'wrote data in {out} successfully')
 
     def __callback(self, u, msg):
         # sanity check
@@ -68,7 +76,7 @@ class BinanceOrderbook(object):
         self.buffer.append(msg)
         # log
         n_asks, n_bids = len(msg['a']), len(msg['b'])
-        print(f'event received ({n_bids} bids, {n_asks} asks)')
+        print(f'<{self.symbol}> event received ({n_bids} bids, {n_asks} asks)')
 
     def to_json(self): return json.dumps(self.data)
 
@@ -84,19 +92,23 @@ class BinanceOrderbook(object):
             msg = self.buffer.pop(0)
             event = Event(msg)
             self.orderbook.update(event)
-            print()
-            self.orderbook.display(self.display_depth) 
+            #print()
+            #self.orderbook.display(self.display_depth) 
             self.data['ob'].append(self.orderbook.as_dict())
 
     def __get_snapshot(self, limit=1000):
         return Client().get_order_book(symbol=self.symbol, limit=limit)
 
-    def __open_depth_stream(self, callback, interval=100):
-        assert interval is None or interval == 100, 'interval must be None for 1s, or 100 for 100ms'
+    def __open_depth_stream(self, callback, interval='1s'):
+        assert interval == '1s' or interval == '100ms', \
+            'interval must be equal to \'1s\' or \'100ms\''
+
+        interval = None if interval == '1s' else 100
+
         print(f'attempting to start wss depth stream for symbol <{self.symbol}>...')
         socket_name = self.twm.start_depth_socket(callback, self.symbol, interval=interval)
-        print(f'depth stream ({socket_name}) started successfully for symbol <{self.symbol}>')
         sleep(1)
+        print(f'depth stream ({socket_name}) started successfully for symbol <{self.symbol}>')
         return socket_name
 
     @staticmethod
@@ -113,7 +125,7 @@ class BinanceOrderbook(object):
     def __stop_stream(self, stream_name):
         try:
             self.twm.stop_socket(stream_name)
-            sleep(0.1)
+            sleep(0.5)
             print(f'stream <{stream_name}> stopped successfully')
         except: print_error('when trying to stop wss stream')
 
