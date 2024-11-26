@@ -1,5 +1,5 @@
 import sys
 
-def printerr(msg): sys.stderr.write(msg)
+def print_error(msg): sys.stderr.write(f'|ERROR| {msg}\n')
 
 BASE_SYMBOL = 'BTCUSDT'

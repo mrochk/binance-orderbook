@@ -106,23 +106,23 @@ class Orderbook(object):
                 self.asks_limit.remove(limit)
                 self.price2asks.pop(limit.price)
             except ValueError:
-                printerr(ValueError, f'when trying to remove {limit}')
+                print_error(ValueError, f'when trying to remove {limit}')
                 exit(1)
             except KeyError:
-                printerr(KeyError, f'when trying to remove {limit}')
+                print_error(KeyError, f'when trying to remove {limit}')
                 exit(1)
         elif isinstance(limit, BidLimit):
             try:
                 self.bids_limit.remove(limit)
                 self.price2bids.pop(limit.price)
             except ValueError:
-                printerr(ValueError, f'when trying to remove {limit}')
+                print_error(ValueError, f'when trying to remove {limit}')
                 exit(1)
             except KeyError:
-                printerr(KeyError, f'when trying to remove {limit}')
+                print_error(KeyError, f'when trying to remove {limit}')
                 exit(1)
         else: 
-            printerr(f'<remove_limit> error: limit is neither bid or ask: {limit}')
+            print_error(f'<remove_limit> error: limit is neither bid or ask: {limit}')
             exit(1)
 
     def __remove_empty(self):
