@@ -105,7 +105,9 @@ class BinanceOrderbook(object):
             if self.display:
                 print()
                 self.orderbook.display(self.display_depth) 
-            self.data['ob'].append(self.orderbook.as_dict())
+
+            if self.write_data:
+                self.data['ob'].append(self.orderbook.as_dict())
 
     def __get_snapshot(self, limit=1000):
         return Client().get_order_book(symbol=self.symbol, limit=limit)
