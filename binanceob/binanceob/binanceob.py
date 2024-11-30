@@ -17,7 +17,13 @@ class BinanceOrderbook(object):
     twm           : ThreadedWebsocketManager
     data          : dict
 
-    def __init__(self, symbol='BTCUSDT', display_depth=10, interval='1s'):
+    def __init__(
+            self, 
+            symbol='BTCUSDT', 
+            display_depth=10, 
+            interval='1s', 
+            write_data=True, 
+            display=True):
         self.symbol = symbol if symbol is not None else BASE_SYMBOL
         self.interval = interval
         self.display_depth = display_depth
@@ -25,10 +31,12 @@ class BinanceOrderbook(object):
         self.orderbook = None
         self.twm = ThreadedWebsocketManager() 
         self.data = {'symbol': self.symbol, 'ob': []}
+        self.write_data = write_data
+        self.display = display
 
     def start(self):
         def callback(msg): 
-            """wrapper around `__callback` to include `u`"""
+            # wrapper around __callback to include local var u
             nonlocal u 
             self.__callback(u, msg)
 
@@ -49,7 +57,7 @@ class BinanceOrderbook(object):
             self.__exit_error()
 
         last_update_id = snapshot['lastUpdateId']
-        self.orderbook = Orderbook(snapshot)
+        self.orderbook = Orderbook(snapshot, self.symbol)
         self.__wait_first_event(last_update_id)
         self.__prune_buffer(last_update_id)
 
@@ -57,16 +65,18 @@ class BinanceOrderbook(object):
         except KeyboardInterrupt: self.__end(socket_name)
 
     def __end(self, socket_name):
-        print(f'\nshutting down...')
-        self.__stop_stream(socket_name); self.__stop_twm()
-        print('orderbook stopped successfully')
+        print(f'\n<{self.symbol}> shutting down...')
+        self.__stop_stream(socket_name); self.__stop_twm(); sleep(0.5)
+        print(f'<{self.symbol}> orderbook stopped successfully')
 
-        try: os.mkdir('data') 
-        except: pass
+        if self.write_data: 
 
-        out = f'data/{self.symbol}.json'
-        with open(out, 'w') as f: f.write(self.to_json())
-        print(f'wrote data in {out} successfully')
+            try: os.mkdir('data') 
+            except: pass
+
+            out = f'data/{self.symbol}.json'
+            with open(out, 'w') as f: f.write(self.to_json())
+            print(f'wrote data in {out} successfully')
 
     def __callback(self, u, msg):
         # sanity check
@@ -92,8 +102,9 @@ class BinanceOrderbook(object):
             msg = self.buffer.pop(0)
             event = Event(msg)
             self.orderbook.update(event)
-            #print()
-            #self.orderbook.display(self.display_depth) 
+            if self.display:
+                print()
+                self.orderbook.display(self.display_depth) 
             self.data['ob'].append(self.orderbook.as_dict())
 
     def __get_snapshot(self, limit=1000):
@@ -119,7 +130,7 @@ class BinanceOrderbook(object):
     def __prune_buffer(self, last_update_id):
         before = len(self.buffer)
         while not self.__is_first_event(last_update_id, self.buffer[0]): self.buffer.pop(0)
-        print(f'<prune buffer> removed {before - len(self.buffer)} events')
+        print(f'<{self.symbol}> <prune buffer> removed {before - len(self.buffer)} events')
         sleep(1)
 
     def __stop_stream(self, stream_name):
@@ -127,10 +138,11 @@ class BinanceOrderbook(object):
             self.twm.stop_socket(stream_name)
             sleep(0.5)
             print(f'stream <{stream_name}> stopped successfully')
-        except: print_error('when trying to stop wss stream')
+            sleep(0.5)
+        except: print_error(f'<{self.symbol}> when trying to stop wss stream')
 
     def __stop_twm(self):
-        try:  self.twm.stop(); sleep(0.1); print(f'twm stopped successfully')
-        except: print_error('when trying to stop twm')
+        try:  self.twm.stop(); sleep(0.1); print(f'<{self.symbol}> twm stopped successfully')
+        except: print_error(f'<{self.symbol}> when trying to stop twm')
 
     def __exit_error(self): self.twm.stop(); exit(1)

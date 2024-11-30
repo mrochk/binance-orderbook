@@ -4,7 +4,8 @@ from ..limit import BidLimit, AskLimit
 from ..util import *
 
 class Orderbook(object):
-    def __init__(self, snapshot : dict):
+    def __init__(self, snapshot : dict, symbol : str):
+        self.symbol   = symbol
         self.midprice = self.volume = self.spread = 0
 
         self.bids_limit = []
@@ -52,7 +53,7 @@ class Orderbook(object):
                 self.bids_limit.append(new_limit)
                 added += 1
 
-        print(f'added {added} limits and updated {updated} limits')
+        print(f'<{self.symbol}> added {added} limits and updated {updated} limits')
 
         self.__remove_empty()
         self.__sort()
