@@ -11,7 +11,7 @@ from ..util import *
 class BinanceOrderbook(object):
     symbol        : str
     interval      : str
-    display_depth : int
+    depth : int
     buffer        : list[dict]
     orderbook     : Orderbook
     twm           : ThreadedWebsocketManager
@@ -20,13 +20,13 @@ class BinanceOrderbook(object):
     def __init__(
             self, 
             symbol='BTCUSDT', 
-            display_depth=10, 
+            depth=10, 
             interval='1s', 
             write_data=True, 
             display=True):
         self.symbol = symbol if symbol is not None else BASE_SYMBOL
         self.interval = interval
-        self.display_depth = display_depth
+        self.depth = depth
         self.buffer = list()
         self.orderbook = None
         self.twm = ThreadedWebsocketManager() 
@@ -104,10 +104,10 @@ class BinanceOrderbook(object):
             self.orderbook.update(event)
             if self.display:
                 print()
-                self.orderbook.display(self.display_depth) 
+                self.orderbook.display(self.depth) 
 
             if self.write_data:
-                self.data['ob'].append(self.orderbook.as_dict())
+                self.data['ob'].append(self.orderbook.as_dict(depth=self.depth))
 
     def __get_snapshot(self, limit=1000):
         return Client().get_order_book(symbol=self.symbol, limit=limit)

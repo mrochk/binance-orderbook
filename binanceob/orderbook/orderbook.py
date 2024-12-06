@@ -26,8 +26,7 @@ class Orderbook(object):
         self.__sort()
 
     def update(self, event : Event): 
-        updated = 0
-        added = 0
+        updated = added = 0
 
         for up in event.asks_update:
             price, qty = list(map(float, up))

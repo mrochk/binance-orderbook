@@ -11,8 +11,7 @@ def parse_symbols(arg:str):
 
 def parse_yes_no(arg:str):
     assert arg in ['yes', 'no']
-    if arg == 'yes': return True
-    return False
+    return True if arg == 'yes' else False
 
 if __name__ == '__main__': 
     argparser = argparse.ArgumentParser(
@@ -40,7 +39,7 @@ if __name__ == '__main__':
         symbol = symbols[0]
         ob = BinanceOrderbook(
             symbol=symbol, interval=interval, write_data=writedata, 
-            display=display, display_depth=depth,
+            display=display, depth=depth,
         )
         ob.start()
         exit(0)
@@ -52,6 +51,7 @@ if __name__ == '__main__':
             symbol=symbol, 
             interval=interval, 
             write_data=writedata,             
+            depth=depth,
             display=False,
         )
         process = Process(target=ob.start)
